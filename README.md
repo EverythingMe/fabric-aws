@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/EverythingMe/fabric-aws.svg?branch=master)](https://travis-ci.org/EverythingMe/fabric-aws)
+
 # Fabric AWS integration
 
 Ever used pychef's fabric integration and loved it?  
