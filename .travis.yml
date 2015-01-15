@@ -3,5 +3,5 @@ python:
   - "2.7"
 
 install: pip install -e .[test]
-script: nosetests --with-coverage --cover-package=fabric_aws --cover-eras
+script: nosetests --with-coverage --cover-package=fabric_aws --cover-erase
 
