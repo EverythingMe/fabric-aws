@@ -6,7 +6,8 @@ Ever used pychef's fabric integration and loved it?
 This project aims to integrate AWS with fabric. You can decorate your fabric tasks to run on an Autoscaling group (which can also be a part of a Cloudformation stack)
 
 ## Installation
-`pip install fabric-aws`
+* `pip install fabric-aws`
+* [Configure boto](http://boto.readthedocs.org/en/latest/boto_config_tut.html)
 
 ## Example fabfile
 
