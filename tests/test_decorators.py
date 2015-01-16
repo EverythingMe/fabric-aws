@@ -26,43 +26,86 @@
 # those of the authors and should not be interpreted as representing official
 # policies, either expressed or implied, of DoAT
 
-from __future__ import absolute_import
-
 from fabric_aws import *
 from fabric.api import task
 import unittest
 import mock
+from test_boto_integration import mock_environment
 
 
-# noinspection PyUnusedLocal
-def mock_cloudformation_logical_to_physical(connection, cfn_stack_name, logical_resource_id):
-    return "{}-physical".format(logical_resource_id)
-
-# noinspection PyUnusedLocal
-def mock_autoscaling_group_instances(autoscale_connection, ec2_connection, autoscaling_group_name):
-    return [mock.Mock(public_dns_name='a.b.c', private_ip_address='10.0.0.1'),
-            mock.Mock(public_dns_name='e.f.g', private_ip_address='10.0.0.2')]
-
-
-@mock.patch('boto.cloudformation.connect_to_region', new=mock.MagicMock())
-@mock.patch('boto.ec2.connect_to_region', new=mock.MagicMock())
-@mock.patch('boto.ec2.autoscale.connect_to_region', new=mock.MagicMock())
-@mock.patch('fabric_aws.cloudformation_logical_to_physical', mock_cloudformation_logical_to_physical)
-@mock.patch('fabric_aws.autoscaling_group_instances', mock_autoscaling_group_instances)
 class TestDecorators(unittest.TestCase):
-    def test_cloudformation_logical_to_physical(self):
-        @cloudformation_autoscaling_group('region', 'stack-name',
-                                          'logical-autoscaling-group-name', 'private_ip_address')
-        @task
-        def dummy():
-            pass
+    def test_laziness(self):
+        mock_cloudformation, mock_ec2 = mock_environment()
 
-        self.assertListEqual(['10.0.0.1', '10.0.0.2'], list(dummy.hosts))
+        with mock.patch('boto.ec2', mock_ec2), mock.patch('boto.cloudformation', mock_cloudformation):
+            # noinspection PyUnusedLocal
+            @cloudformation_autoscaling_group('region', 'stack-name',
+                                              'logical-autoscaling-group-name', 'private_ip_address')
+            @task
+            def dummy1():
+                pass
+
+            # noinspection PyUnusedLocal
+            @autoscaling_group('region', 'autoscaling-group-name')
+            @task
+            def dummy2():
+                pass
+
+            # noinspection PyUnusedLocal
+            @ec2('region', instance_ids=['i-00000001', 'i-00000002', 'i-00000003', 'i-00000004'])
+            @task
+            def dummy3():
+                pass
+
+        self.assertFalse(mock_ec2.connect_to_region.called)
+        self.assertFalse(mock_ec2.autoscale.return_value.connect_to_region.called)
+        self.assertFalse(mock_cloudformation.connect_to_region.called)
+
+    def test_cloudformation_autoscaling_group(self):
+        mock_cloudformation, mock_ec2 = mock_environment()
+
+        with mock.patch('boto.ec2', mock_ec2), mock.patch('boto.cloudformation', mock_cloudformation):
+            @cloudformation_autoscaling_group('region', 'stack-name',
+                                              'logical-autoscaling-group-name', 'private_ip_address')
+            @task
+            def dummy():
+                pass
+
+            hosts = list(dummy.hosts)
+
+        self.assertListEqual(
+            ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4'],
+            hosts
+        )
 
     def test_autoscaling_group(self):
-        @autoscaling_group('region', 'autoscaling-group-name')
-        @task
-        def dummy():
-            pass
+        mock_cloudformation, mock_ec2 = mock_environment()
 
-        self.assertListEqual(['a.b.c', 'e.f.g'], list(dummy.hosts))
+        with mock.patch('boto.ec2', mock_ec2), mock.patch('boto.cloudformation', mock_cloudformation):
+            @autoscaling_group('region', 'autoscaling-group-name')
+            @task
+            def dummy():
+                pass
+
+            hosts = list(dummy.hosts)
+
+        self.assertListEqual(
+            ['a.a.a', 'b.b.b', 'c.c.c', 'd.d.d'],
+            hosts
+        )
+
+    def test_ec2(self):
+        mock_cloudformation, mock_ec2 = mock_environment()
+
+        with mock.patch('boto.ec2', mock_ec2), mock.patch('boto.cloudformation', mock_cloudformation):
+            @ec2('region', instance_ids=['i-00000001', 'i-00000002', 'i-00000003', 'i-00000004'])
+            @task
+            def dummy():
+                pass
+
+            hosts = list(dummy.hosts)
+
+        self.assertListEqual(
+            ['a.a.a', 'b.b.b', 'c.c.c', 'd.d.d'],
+            hosts
+        )
