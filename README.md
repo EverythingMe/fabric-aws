@@ -21,8 +21,25 @@ from fabric_aws import *
 def uptime_asg():
     run('uptime')
 
-@cloudformation_autoscaling_group('us-east-1', 'my-cloudformation', 'AutoScalingGroup')
+@cloudformation_autoscaling_group('us-east-1', 'my-cloudformation',
+                                  'AutoScalingGroup')
 @task
 def uptime_cfn():
+    run('uptime')
+
+@ec2('us-east-1', instance_ids=['i-01010101', 'i-10101010'])
+@task
+def uptime_ec2_instance_ids():
+    run('uptime')
+
+@ec2('us-east-1', filters={'tag:Name': 'jenkins'})
+@task
+def uptime_jenkins():
+    run('uptime')
+
+@ec2('us-east-1', filters={'tag:Name': 'my-vpc-instance'},
+     hostname_attribute='private_ip_address')
+@task
+def uptime_vpc():
     run('uptime')
 ```
