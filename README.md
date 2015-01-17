@@ -37,6 +37,8 @@ def uptime_ec2_instance_ids():
 def uptime_jenkins():
     run('uptime')
 
+# see the documentation for boto.ec2.get_all_instances()
+# http://boto.readthedocs.org/en/latest/ref/ec2.html#boto.ec2.connection.EC2Connection.get_all_instances
 @ec2('us-east-1', filters={'tag:Name': 'my-vpc-instance'},
      hostname_attribute='private_ip_address')
 @task
